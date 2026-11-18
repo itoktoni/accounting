@@ -40,13 +40,13 @@ return [
         [
             'label' => 'Transaksi',
             'items' => [
-                ['route' => 'jurnal.getTable', 'icon' => 'receipt_long', 'label' => 'Jurnal', 'match' => ['jurnal.*']],
-                ['route' => 'invoice.getTable', 'icon' => 'description', 'label' => 'Invoice', 'match' => ['invoice.*']],
-                ['route' => 'penawaran.getTable', 'icon' => 'request_quote', 'label' => 'Penawaran', 'match' => ['penawaran.*']],
                 ['route' => 'purchaseorder.getTable', 'icon' => 'shopping_cart', 'label' => 'Purchase Order', 'match' => ['purchaseorder.*']],
-                ['route' => 'piutang.getTable', 'icon' => 'call_received', 'label' => 'Piutang', 'match' => ['piutang.*']],
                 ['route' => 'hutang.getTable', 'icon' => 'call_made', 'label' => 'Hutang', 'match' => ['hutang.*']],
-                ['route' => 'possale.getTable', 'icon' => 'point_of_sale', 'label' => 'POS', 'match' => ['possale.*', 'posshift.*', 'voucher.*']],
+                ['route' => 'penawaran.getTable', 'icon' => 'request_quote', 'label' => 'Penawaran', 'match' => ['penawaran.*']],
+                ['route' => 'invoice.getTable', 'icon' => 'description', 'label' => 'Invoice', 'match' => ['invoice.*']],
+                ['route' => 'piutang.getTable', 'icon' => 'call_received', 'label' => 'Piutang', 'match' => ['piutang.*']],
+                ['route' => 'jurnal.getTable', 'icon' => 'receipt_long', 'label' => 'Jurnal', 'match' => ['jurnal.*']],
+                ['route' => 'possale.getKasir', 'icon' => 'point_of_sale', 'label' => 'POS', 'match' => ['possale.*', 'posshift.*', 'voucher.*']],
                 ['route' => 'produksi.getTable', 'icon' => 'precision_manufacturing', 'label' => 'Produksi', 'match' => ['produksi.*', 'produksitemplate.*']],
             ],
         ],

@@ -9,15 +9,16 @@
         .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
         .header .co { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
         .header .co-sub { font-size: 10px; opacity: .85; }
-        .doc-title { background: #eff6ff; border-bottom: 3px solid #1e3a8a; padding: 12px 32px; }
-        .doc-title h2 { margin: 0; font-size: 17px; color: #1e3a8a; }
-        .doc-title .rev { display: inline-block; background: #1e3a8a; color: #fff; font-size: 10px; padding: 2px 10px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
-        .body { padding: 16px 32px; }
+        .doc-title { background: #1e3a8a; padding: 12px 32px; }
+        .doc-title h2 { margin: 0; font-size: 17px; color: #fff; letter-spacing: 1px; }
+        .doc-title .rev, .rev { display: inline-block; background: #1e3a8a; color: #fff; font-size: 10px; padding: 2px 10px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+        .body { padding: 16px 10px; }
         .info { width: 100%; margin-bottom: 12px; }
         .info td { vertical-align: top; padding: 2px 4px; font-size: 11px; }
         .info .lbl { color: #6b7280; width: 110px; }
         table.items { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
         table.items th { background: #1e3a8a; color: #fff; padding: 8px 6px; text-align: left; }
+        table.items th.num, table.items td.num { text-align: right; white-space: nowrap; }
         table.items td { padding: 7px 6px; border-bottom: 1px solid #e5e7eb; }
         table.items tr:nth-child(even) td { background: #f8fafc; }
         .num { text-align: right; white-space: nowrap; }
@@ -39,18 +40,18 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="co">{{ $co['name'] ?? config('app.name') }}</div>
-        <div class="co-sub">{{ $co['alamat'] ?? '' }}{{ isset($co['telepon']) && $co['telepon'] ? ' · Telp: '.$co['telepon'] : '' }}{{ isset($co['email']) && $co['email'] ? ' · '.$co['email'] : '' }}</div>
-        <h1>PENAWARAN HARGA</h1>
-    </div>
     <div class="doc-title">
-        <h2>{{ $penawaran->penawaran_nomor }}@if($penawaran->penawaran_revisi > 0)<span class="rev">Rev-{{ $penawaran->penawaran_revisi }}</span>@endif</h2>
+        <h2>PENAWARAN</h2>
     </div>
     <div class="body">
         <table class="info">
             <tr>
                 <td style="width:55%">
+                    <strong>Dari:</strong><br />
+                    <strong>{{ $co['name'] ?? config('app.name') }}</strong><br />
+                    {{ $co['alamat'] ?? '' }}<br />
+                    {{ $co['telepon'] ?? '' }}{{ isset($co['email']) && $co['email'] ? ' · '.$co['email'] : '' }}<br />
+                    <br />
                     <strong>Kepada Yth:</strong><br />
                     <strong>{{ $penawaran->penawaran_pelanggan }}</strong><br />
                     {{ $penawaran->penawaran_alamat ?: $customer?->customer_alamat }}<br />
@@ -58,6 +59,7 @@
                 </td>
                 <td style="width:45%">
                     <table>
+                        <tr><td class="lbl">Nomor</td><td>: <strong>{{ $penawaran->penawaran_nomor }}</strong>@if($penawaran->penawaran_revisi > 0)<span class="rev">Rev-{{ $penawaran->penawaran_revisi }}</span>@endif</td></tr>
                         <tr><td class="lbl">Tanggal</td><td>: {{ formatDate($penawaran->penawaran_tanggal) }}</td></tr>
                         <tr><td class="lbl">Berlaku sampai</td><td>: {{ $penawaran->penawaran_berlaku_sampai ? formatDate($penawaran->penawaran_berlaku_sampai) : '-' }}</td></tr>
                         <tr><td class="lbl">Termin</td><td>: {{ $termin ?? '-' }}</td></tr>

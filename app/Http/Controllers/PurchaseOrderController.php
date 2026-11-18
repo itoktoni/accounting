@@ -43,9 +43,30 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
+    private function mergeVendor(GeneralRequest $request): void
+    {
+        if (! empty($request->input('po_alamat')) && ! empty($request->input('po_telepon'))) {
+            return;
+        }
+        $vendor = \App\Models\Vendor::where('vendor_nama', $request->input('po_vendor'))->first();
+        if (! $vendor) {
+            return;
+        }
+        $merge = [];
+        if (empty($request->input('po_alamat')) && ! empty($vendor->vendor_alamat)) {
+            $merge['po_alamat'] = $vendor->vendor_alamat;
+        }
+        if (empty($request->input('po_telepon')) && ! empty($vendor->vendor_telepon)) {
+            $merge['po_telepon'] = $vendor->vendor_telepon;
+        }
+        if ($merge) {
+            $request->merge($merge);
+        }
+    }
+
     public function postCreate(GeneralRequest $request)
     {
-        $response = $this->traitPostCreate($request);
+        $this->mergeVendor($request);
         if ($response['status'] && $response['data'] instanceof PurchaseOrder) {
             $this->syncItems($response['data'], $request->input('items', []));
         }
@@ -55,6 +76,7 @@ class PurchaseOrderController extends Controller
 
     public function postUpdate(GeneralRequest $request, $id)
     {
+        $this->mergeVendor($request);
         $response = $this->traitPostUpdate($request, $id);
         if ($response['status']) {
             $this->syncItems($this->model->findOrFail($id), $request->input('items', []));

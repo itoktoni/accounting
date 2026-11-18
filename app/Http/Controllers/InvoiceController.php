@@ -75,10 +75,32 @@ class InvoiceController extends Controller
         ]);
     }
 
+    private function mergePelanggan(GeneralRequest $request): void
+    {
+        if (! empty($request->input('invoice_alamat')) && ! empty($request->input('invoice_telepon'))) {
+            return;
+        }
+        $cust = \App\Models\Customer::where('customer_nama', $request->input('invoice_pelanggan'))->first();
+        if (! $cust) {
+            return;
+        }
+        $merge = [];
+        if (empty($request->input('invoice_alamat')) && ! empty($cust->customer_alamat)) {
+            $merge['invoice_alamat'] = $cust->customer_alamat;
+        }
+        if (empty($request->input('invoice_telepon')) && ! empty($cust->customer_telepon)) {
+            $merge['invoice_telepon'] = $cust->customer_telepon;
+        }
+        if ($merge) {
+            $request->merge($merge);
+        }
+    }
+
     public function postCreate(GeneralRequest $request)
     {
         $this->validateItems($request);
         $this->mergeTermin($request);
+        $this->mergePelanggan($request);
         $response = $this->traitPostCreate($request);
         if ($response['status'] && $response['data'] instanceof Invoice) {
             $this->syncItems($response['data'], $request->input('items', []));
@@ -91,6 +113,7 @@ class InvoiceController extends Controller
     {
         $this->validateItems($request);
         $this->mergeTermin($request);
+        $this->mergePelanggan($request);
         $response = $this->traitPostUpdate($request, $id);
         if ($response['status']) {
             $this->syncItems($this->model->findOrFail($id), $request->input('items', []));

@@ -201,6 +201,28 @@ class PenawaranController extends Controller
             return $this->response($this->payload(TOAST_FAILED, 'Sudah dibuatkan invoice.'));
         }
 
+        return $this->response($this->payload(TOAST_SUCCESS, $this->buatInvoice($penawaran)));
+    }
+
+    // Convert langsung 1 klik: setujui (bila belum) + jadikan invoice.
+    public function postConvert(GeneralRequest $request, $id)
+    {
+        $penawaran = $this->model->findOrFail($id);
+        if ($penawaran->penawaran_invoice_id) {
+            return $this->response($this->payload(TOAST_FAILED, 'Sudah dibuatkan invoice.'));
+        }
+        if ($penawaran->penawaran_status === 'DITOLAK') {
+            return $this->response($this->payload(TOAST_FAILED, 'Penawaran DITOLAK tidak bisa di-convert.'));
+        }
+        if ($penawaran->penawaran_status !== 'DISETUJUI') {
+            $penawaran->update(['penawaran_status' => 'DISETUJUI']);
+        }
+
+        return $this->response($this->payload(TOAST_SUCCESS, $this->buatInvoice($penawaran->fresh())));
+    }
+
+    private function buatInvoice(Penawaran $penawaran): Invoice
+    {
         $t = $penawaran->hitungTotal();
         $hari = (int) (\App\Models\Termin::where('termin_kode', $penawaran->penawaran_termin_kode)->value('termin_hari') ?? 0);
         $tglInv = now()->toDateString();
@@ -246,6 +268,6 @@ class PenawaranController extends Controller
             return $inv;
         });
 
-        return $this->response($this->payload(TOAST_SUCCESS, $invoice));
+        return $invoice;
     }
 }

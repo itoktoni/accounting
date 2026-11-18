@@ -30,12 +30,18 @@
                     <thead><tr class="border-b font-bold"><th class="p-2 text-left">Akun</th><th class="p-2 text-right">Debit</th><th class="p-2 text-right">Kredit</th></tr></thead>
                     <tbody>
                         <tr><td class="p-2 font-bold" colspan="3">Pendapatan (D ... / K 3200)</td></tr>
-                        @foreach($pendapatan as $r)
+                        @foreach($pendapatan->groupBy('akun_subtipe') as $sub => $list)
+                        <tr><td class="p-2 pl-4 font-semibold" colspan="3">-- {{ $sub ?: 'Lainnya' }}</td></tr>
+                        @foreach($list as $r)
                         <tr class="border-b"><td class="p-2 pl-6">{{ $r->akun_kode }} - {{ $r->akun_nama }}</td><td class="p-2 text-right">{{ formatAngka((int) round($r->saldo)) }}</td><td class="p-2 text-right">{{ formatAngka((int) round($r->saldo)) }}</td></tr>
                         @endforeach
+                        @endforeach
                         <tr><td class="p-2 font-bold" colspan="3">Beban (D 3200 / K ...)</td></tr>
-                        @foreach($beban as $r)
+                        @foreach($beban->groupBy('akun_subtipe') as $sub => $list)
+                        <tr><td class="p-2 pl-4 font-semibold" colspan="3">-- {{ $sub ?: 'Lainnya' }}</td></tr>
+                        @foreach($list as $r)
                         <tr class="border-b"><td class="p-2 pl-6">{{ $r->akun_kode }} - {{ $r->akun_nama }}</td><td class="p-2 text-right">{{ formatAngka((int) round($r->saldo)) }}</td><td class="p-2 text-right">{{ formatAngka((int) round($r->saldo)) }}</td></tr>
+                        @endforeach
                         @endforeach
                         <tr class="font-bold bg-surface-container"><td class="p-2">Total</td><td class="p-2 text-right">{{ formatAngka((int) round($totP + $totB)) }}</td><td class="p-2 text-right">{{ formatAngka((int) round($totP + $totB)) }}</td></tr>
                         <tr class="font-bold"><td class="p-2">Laba / (Rugi) Tahun {{ $tahun }}</td><td class="p-2 text-right" colspan="2">{{ formatAngka((int) round($laba)) }}</td></tr>

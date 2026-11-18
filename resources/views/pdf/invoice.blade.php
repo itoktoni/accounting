@@ -9,14 +9,15 @@
         .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
         .header .co { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
         .header .co-sub { font-size: 10px; opacity: .85; }
-        .doc-title { background: #eff6ff; border-bottom: 3px solid #1e3a8a; padding: 12px 32px; }
-        .doc-title h2 { margin: 0; font-size: 17px; color: #1e3a8a; }
-        .body { padding: 16px 32px; }
+        .doc-title { background: #1e3a8a; padding: 12px 32px; }
+        .doc-title h2 { margin: 0; font-size: 17px; color: #fff; letter-spacing: 1px; }
+        .body { padding: 16px 10px; }
         .info { width: 100%; margin-bottom: 12px; }
         .info td { vertical-align: top; padding: 2px 4px; font-size: 11px; }
         .info .lbl { color: #6b7280; width: 110px; }
         table.items { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
         table.items th { background: #1e3a8a; color: #fff; padding: 8px 6px; text-align: left; }
+        table.items th.num, table.items td.num { text-align: right; white-space: nowrap; }
         table.items td { padding: 7px 6px; border-bottom: 1px solid #e5e7eb; }
         table.items tr:nth-child(even) td { background: #f8fafc; }
         .num { text-align: right; white-space: nowrap; }
@@ -38,18 +39,18 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="co">{{ $co['name'] ?? config('app.name') }}</div>
-        <div class="co-sub">{{ $co['alamat'] ?? '' }}{{ isset($co['telepon']) && $co['telepon'] ? ' · Telp: '.$co['telepon'] : '' }}{{ isset($co['email']) && $co['email'] ? ' · '.$co['email'] : '' }}</div>
-        <h1>INVOICE</h1>
-    </div>
     <div class="doc-title">
-        <h2>{{ $invoice->invoice_nomor }}</h2>
+        <h2>INVOICE</h2>
     </div>
     <div class="body">
         <table class="info">
             <tr>
                 <td style="width:55%">
+                    <strong>Dari:</strong><br />
+                    <strong>{{ $co['name'] ?? config('app.name') }}</strong><br />
+                    {{ $co['alamat'] ?? '' }}<br />
+                    {{ $co['telepon'] ?? '' }}{{ isset($co['email']) && $co['email'] ? ' · '.$co['email'] : '' }}<br />
+                    <br />
                     <strong>Kepada Yth:</strong><br />
                     <strong>{{ $invoice->invoice_pelanggan }}</strong><br />
                     {{ $invoice->invoice_alamat ?: $customer?->customer_alamat }}<br />
@@ -57,6 +58,7 @@
                 </td>
                 <td style="width:45%">
                     <table>
+                        <tr><td class="lbl">Nomor</td><td>: <strong>{{ $invoice->invoice_nomor }}</strong></td></tr>
                         <tr><td class="lbl">Tanggal</td><td>: {{ formatDate($invoice->invoice_tanggal) }}</td></tr>
                         <tr><td class="lbl">Jatuh tempo</td><td>: {{ $invoice->invoice_jatuh_tempo ? formatDate($invoice->invoice_jatuh_tempo) : '-' }}</td></tr>
                         <tr><td class="lbl">Termin</td><td>: {{ $termin ?? '-' }}</td></tr>

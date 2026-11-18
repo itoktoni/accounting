@@ -9,6 +9,7 @@
         .header .co-sub { font-size: 10px; opacity: .85; }
         .header h1 { margin: 6px 0 0; font-size: 20px; letter-spacing: 1px; }
         .doc-title { background: #eff6ff; border-bottom: 3px solid #1e3a8a; padding: 12px 32px; }
+        .doc-title .doc-type { font-size: 11px; letter-spacing: 2px; color: #1e3a8a; font-weight: bold; }
         .doc-title h2 { margin: 0; font-size: 16px; color: #1e3a8a; }
         .body { padding: 16px 32px; }
         table.info { width: 100%; margin-bottom: 10px; font-size: 11px; }
@@ -17,6 +18,7 @@
         h3.sec { font-size: 13px; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px; margin: 16px 0 6px; }
         table.items { width: 100%; border-collapse: collapse; font-size: 11px; }
         table.items th { background: #1e3a8a; color: #fff; padding: 7px 6px; text-align: left; }
+        table.items th.num, table.items td.num { text-align: right; white-space: nowrap; }
         table.items td { padding: 6px; border-bottom: 1px solid #e5e7eb; }
         table.items tr:nth-child(even) td { background: #f8fafc; }
         .num { text-align: right; white-space: nowrap; }
@@ -36,12 +38,8 @@
         $laba = $totMasuk - $totBiaya;
         $realBiaya = $jurnals->sum('total_debit');
     @endphp
-    <div class="header">
-        <div class="co">{{ $co['name'] ?? config('app.name') }}</div>
-        <div class="co-sub">{{ $co['alamat'] ?? '' }}</div>
-        <h1>LAPORAN PROYEK</h1>
-    </div>
-    <div class="doc-title"><h2>{{ $proyek->proyek_kode }} - {{ $proyek->proyek_nama }}</h2></div>
+    <div class="doc-title">
+        <div class="doc-type">LAPORAN PROYEK</div><h2>{{ $proyek->proyek_kode }} - {{ $proyek->proyek_nama }}</h2></div>
     <div class="body">
         <table class="info">
             <tr><td class="lbl">Pelanggan</td><td>: {{ $proyek->proyek_pelanggan ?: '-' }}</td><td class="lbl">Nilai Kontrak</td><td>: Rp {{ number_format($proyek->proyek_nilai_kontrak, 0, ',', '.') }}</td></tr>

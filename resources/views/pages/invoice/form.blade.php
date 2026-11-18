@@ -15,8 +15,10 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
                 <x-input col="4" name="invoice_nomor" label="Nomor" />
                 <x-input col="4" type="date" name="invoice_tanggal" label="Tanggal" id="fld-tanggal" />
                 <x-input col="4" type="date" name="invoice_jatuh_tempo" label="Jatuh Tempo" id="fld-jatuh-tempo" />
-                <x-input col="4" type="number" name="invoice_top_hari" label="TOP (hari)" id="fld-top-hari" />
-                <x-select col="4" name="termin_kode" label="Termin Pembayaran" :options="$terminOptions" />
+                <div class="col-span-12 md:col-span-4">
+                    <x-select name="termin_kode" label="Termin Pembayaran" col="12" :options="$terminOptions" />
+                    <p class="text-xs text-on-surface-variant mt-1">TOP: <span id="top-hint">{{ $model->invoice_top_hari ?? 0 }} hari</span> — jatuh tempo dihitung otomatis.</p>
+                </div>
                 <div class="col-span-12 md:col-span-4">
                     <x-select name="invoice_pelanggan" label="Pelanggan" col="12" :options="$pelangganOptions" />
                     <button type="button" onclick="document.getElementById('custDialog').showModal()" class="text-sm text-primary font-semibold mt-1">+ Tambah Pelanggan</button>
@@ -63,14 +65,7 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
                             <tr class="border-b item-row">
                                 <td class="p-1" style="min-width:200px">
                                     <span class="row-lbl">Barang / Jasa</span>
-                                    <select onchange="pilihProduk(this)" class="border rounded px-2 py-1 text-sm w-full prod-select">
-                                        <option value="">— Pilih barang/jasa —</option>
-                                        @foreach($produkMap as $nama => $harga)
-                                        <option value="{{ $nama }}" @selected($inMaster && $it->item_deskripsi === $nama)>{{ $nama }}</option>
-                                        @endforeach
-                                        <option value="__manual" @selected($it && !$inMaster)>Ketik manual...</option>
-                                    </select>
-                                    <input name="items[{{ $i }}][item_deskripsi]" value="{{ $it?->item_deskripsi }}" class="border rounded px-2 py-1 text-sm w-full mt-1 prod-text" style="{{ $inMaster || !$it ? 'display:none' : '' }}" @if(!$inMaster) required @endif />
+                                    <input name="items[{{ $i }}][item_deskripsi]" value="{{ $it?->item_deskripsi }}" list="dlProduk" placeholder="— Pilih / ketik barang —" autocomplete="off" class="border rounded px-2 py-1 text-sm w-full prod-text" required oninput="pilihProduk(this)" />
                                 </td>
                                 <td class="p-2"><span class="row-lbl">Qty</span><input name="items[{{ $i }}][item_qty]" type="number" step="0.01" min="0" value="{{ $it?->item_qty ?? 1 }}" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
                                 <td class="p-2"><span class="row-lbl">Harga</span><input name="items[{{ $i }}][item_harga_satuan]" type="number" step="0.01" min="0" value="{{ $it?->item_harga_satuan ?? 0 }}" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
@@ -88,6 +83,7 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
                         </tbody>
                     </table>
                     <x-button variant="soft" type="button" onclick="tambahBaris()">+ Tambah Baris</x-button>
+                    <datalist id="dlProduk">@foreach($produkMap as $nama => $harga)<option value="{{ $nama }}">{{ formatAngka($harga) }}</option>@endforeach</datalist>
                 </div>
 
                 <div class="col-span-12 mt-2 p-3 rounded-xl bg-surface-container text-sm" id="liveBox">
@@ -120,6 +116,7 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
                     <span class="material-symbols-outlined text-base md:text-xl">print</span>
                     <span class="hidden sm:inline">Cetak PDF</span>
                 </a>
+                <x-jurnal-lihat :jurnal-id="$model->invoice_jurnal_id ?? null" />
                 @if($model->invoice_status === 'DRAFT')
                 <button type="submit" formaction="{{ moduleRoute('postPosting', ['id' => $model->field_primary]) }}" formmethod="POST" formnovalidate class="inline-flex items-center justify-center gap-1 h-8 md:h-10 px-2.5 md:px-4 text-xs md:text-sm font-semibold rounded-lg bg-primary text-on-primary hover:bg-primary/90 shadow-sm transition-all active:scale-95 shrink-0">
                     <span class="material-symbols-outlined text-base md:text-xl">post_add</span>
@@ -144,8 +141,8 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
         const kode = document.getElementById('select-termin_kode')?.value || '';
         if (!kode || TERMIN_HARI[kode] === undefined) return;
         const hari = parseInt(TERMIN_HARI[kode], 10) || 0;
-        const top = document.getElementById('fld-top-hari');
-        if (top) top.value = hari;
+        const hint = document.getElementById('top-hint');
+        if (hint) hint.textContent = hari + ' hari';
         const tgl = document.getElementById('fld-tanggal')?.value || '';
         const jt = document.getElementById('fld-jatuh-tempo');
         if (jt && tgl) jt.value = addDaysStr(tgl, hari);
@@ -156,25 +153,11 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
         const kode = document.getElementById('select-termin_kode')?.value || '';
         if (kode && TERMIN_HARI[kode] !== undefined) applyTermin();
     });
-    function pilihProduk(sel) {
-        const tr = sel.closest('tr');
-        const text = tr.querySelector('.prod-text');
+    function pilihProduk(el) {
+        const tr = el.closest('tr');
         const inp = tr.querySelector('input[name$="[item_harga_satuan]"]');
-        if (sel.value === '__manual') {
-            text.style.display = '';
-            text.required = true;
-            text.focus();
-        } else if (sel.value === '') {
-            text.value = '';
-            text.style.display = 'none';
-            text.required = false;
-        } else {
-            text.value = sel.value;
-            text.style.display = 'none';
-            text.required = false;
-            const harga = PRODUK_HARGA[sel.value];
-            if (harga !== undefined && inp && (!inp.value || inp.value == 0)) inp.value = harga;
-        }
+        const harga = PRODUK_HARGA[el.value];
+        if (harga !== undefined && inp && (!inp.value || inp.value == 0)) inp.value = harga;
     }
     function optList(opts, cur) {
         const list = [...opts];
@@ -185,16 +168,12 @@ if (!isset($pajakAssoc[$curPajakKey])) $pajakAssoc[$curPajakKey] = rtrim(rtrim($
     function tambahBaris() {
         const tbody = document.querySelector('#itemsTable tbody');
         const i = tbody.rows.length;
-        const prodOpts = Object.keys(PRODUK_HARGA).map(n => `<option value="${n}">${n}</option>`).join('');
         const tr = document.createElement('tr');
         tr.className = 'border-b item-row';
         tr.innerHTML = `
             <td class="p-1" style="min-width:200px">
                 <span class="row-lbl">Barang / Jasa</span>
-                <select onchange="pilihProduk(this)" class="border rounded px-2 py-1 text-sm w-full prod-select">
-                    <option value="">— Pilih barang/jasa —</option>${prodOpts}<option value="__manual">Ketik manual...</option>
-                </select>
-                <input name="items[${i}][item_deskripsi]" class="border rounded px-2 py-1 text-sm w-full mt-1 prod-text" style="display:none" />
+                <input name="items[${i}][item_deskripsi]" list="dlProduk" placeholder="— Pilih / ketik barang —" autocomplete="off" class="border rounded px-2 py-1 text-sm w-full prod-text" required oninput="pilihProduk(this)" />
             </td>
             <td class="p-2"><span class="row-lbl">Qty</span><input name="items[${i}][item_qty]" type="number" step="0.01" min="0" value="1" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
             <td class="p-2"><span class="row-lbl">Harga</span><input name="items[${i}][item_harga_satuan]" type="number" step="0.01" min="0" value="0" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>

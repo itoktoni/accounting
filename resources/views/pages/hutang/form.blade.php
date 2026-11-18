@@ -17,6 +17,8 @@
             @endbind
         </x-card>
 
-        <x-action :model="$model" :action="['save']"/>
+        <x-action :model="$model" :action="['save']">
+            <x-jurnal-lihat :jurnal-ids="$model->exists ? array_merge([$model->hutang_jurnal_id], $model->hasBayar()->pluck('bh_jurnal_id')->toArray()) : []" />
+        </x-action>
     </x-form>
 </x-layouts::app>

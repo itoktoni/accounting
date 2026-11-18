@@ -20,6 +20,8 @@
             @endbind
         </x-card>
 
-        <x-action :model="$model" :action="['save']"/>
+        <x-action :model="$model" :action="['save']">
+            <x-jurnal-lihat :jurnal-id="$model->payroll_jurnal_id ?? null" />
+        </x-action>
     </x-form>
 </x-layouts::app>

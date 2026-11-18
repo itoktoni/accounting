@@ -61,6 +61,32 @@ class HutangController extends Controller
         return $this->response($this->payload(TOAST_SUCCESS, $hutang->fresh()));
     }
 
+    // Tandai Lunas 1 klik: lunasi sisa + jurnal kas otomatis.
+    public function postLunas(GeneralRequest $request, $id)
+    {
+        $hutang = $this->model->findOrFail($id);
+        $sisa = (float) $hutang->hutang_jumlah - (float) $hutang->hutang_terbayar;
+        if ($sisa <= 0) {
+            return $this->response($this->payload(TOAST_FAILED, 'Sudah lunas.'));
+        }
+
+        DB::transaction(function () use ($hutang, $sisa) {
+            BayarHutang::create([
+                "bh_hutang_id" => $hutang->hutang_id,
+                "bh_tanggal" => now()->toDateString(),
+                "bh_jumlah" => $sisa,
+                "bh_catatan" => "Pelunasan (tandai lunas)",
+                "bh_jurnal_id" => $this->buatJurnalPelunasan($hutang, $sisa),
+            ]);
+            $hutang->update([
+                "hutang_terbayar" => (float) $hutang->hutang_jumlah,
+                "hutang_status" => "LUNAS",
+            ]);
+        });
+
+        return $this->response($this->payload(TOAST_SUCCESS, $hutang->fresh()));
+    }
+
     // Jurnal D Hutang 2100 K Kas — hanya bila tabel jurnal tersedia.
     protected function buatJurnalPelunasan(Hutang $hutang, float $jumlah): ?int
     {

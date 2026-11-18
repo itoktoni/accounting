@@ -7,7 +7,8 @@
                 <x-input col="4" type="number" name="tahun" label="Tahun" value="{{ request('tahun', date('Y')) }}" />
                 <x-input col="4" type="number" name="bulan" label="Bulan (opsional)" value="{{ request('bulan') }}" />
                 @foreach ($dropdowns as $dd)
-                <x-select col="4" name="{{ $dd['name'] }}" label="{{ $dd['label'] }}" :options="$dd['options']" :default="request($dd['name'])" />
+                @php($ddClass = !empty($dd['search']) ? 'search' : '')
+                <x-select col="4" name="{{ $dd['name'] }}" label="{{ $dd['label'] }}" :options="$dd['options']" :default="request($dd['name'])" class="{{ $ddClass }}" />
                 @endforeach
             </x-card>
 

@@ -70,18 +70,10 @@
                                 <td class="p-2"><span class="row-lbl">Qty</span><input name="items[{{ $i }}][item_qty]" type="number" step="0.01" min="0" value="{{ $it?->item_qty ?? 1 }}" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
                                 <td class="p-2"><span class="row-lbl">Harga</span><input name="items[{{ $i }}][item_harga_satuan]" type="number" step="0.01" min="0" value="{{ $it?->item_harga_satuan ?? 0 }}" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
                                 <td class="p-2"><span class="row-lbl">Diskon %</span>
-                                    <select name="items[{{ $i }}][item_diskon_persen]" class="border rounded px-2 py-1 text-sm w-full">
-                                        @foreach($diskonList as $o)
-                                        <option value="{{ $o['v'] }}" @selected($curDiskon == $o['v'])>{{ $o['l'] }}</option>
-                                        @endforeach
-                                    </select>
+                                    <input name="items[{{ $i }}][item_diskon_persen]" type="number" step="0.01" min="0" max="100" value="{{ $curDiskon }}" list="dlDiskon" class="border rounded px-2 py-1 text-sm w-full text-right" />
                                 </td>
                                 <td class="p-2"><span class="row-lbl">Pajak %</span>
-                                    <select name="items[{{ $i }}][item_pajak_persen]" class="border rounded px-2 py-1 text-sm w-full">
-                                        @foreach($pajakList as $o)
-                                        <option value="{{ $o['v'] }}" @selected($curPajak == $o['v'])>{{ $o['l'] }}</option>
-                                        @endforeach
-                                    </select>
+                                    <input name="items[{{ $i }}][item_pajak_persen]" type="number" step="0.01" min="0" max="100" value="{{ $curPajak }}" list="dlPajak" class="border rounded px-2 py-1 text-sm w-full text-right" />
                                 </td>
                                 <td class="p-2 text-right row-subtotal row-subcell whitespace-nowrap"><span class="row-lbl">Subtotal</span><span class="row-val">0</span></td>
                                 <td class="p-1 text-center row-del"><button type="button" onclick="this.closest('tr').remove()" class="text-red-600 font-bold text-lg leading-none">×</button></td>
@@ -90,7 +82,10 @@
                         </tbody>
                     </table>
                     <x-button variant="soft" type="button" onclick="tambahBaris()">+ Tambah Baris</x-button>
-                    <p class="text-xs text-on-surface-variant mt-1">Kolom Pajak % per baris dipakai bila mode pajak = Per barang.</p>
+                    <button type="button" onclick="document.getElementById('brgDialog').showModal()" class="text-sm text-primary font-semibold mt-1 ml-2">+ Barang Baru</button>
+                    <p class="text-xs text-on-surface-variant mt-1">Diskon & pajak per baris bisa diketik manual (mis. 7.5) atau pilih dari saran. Kolom Pajak % per baris dipakai bila mode pajak = Per barang.</p>
+                    <datalist id="dlDiskon">@foreach($diskonOpts as $o)<option value="{{ $o['v'] }}">{{ $o['l'] }}</option>@endforeach</datalist>
+                    <datalist id="dlPajak">@foreach($pajakOpts as $o)<option value="{{ $o['v'] }}">{{ $o['l'] }}</option>@endforeach</datalist>
                 </div>
 
                 <div class="col-span-12 mt-2 p-3 rounded-xl bg-surface-container text-sm" id="liveBox">
@@ -204,8 +199,8 @@
             </td>
             <td class="p-2"><span class="row-lbl">Qty</span><input name="items[${i}][item_qty]" type="number" step="0.01" min="0" value="1" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
             <td class="p-2"><span class="row-lbl">Harga</span><input name="items[${i}][item_harga_satuan]" type="number" step="0.01" min="0" value="0" class="border rounded px-2 py-1 text-sm w-full text-right" required /></td>
-            <td class="p-2"><span class="row-lbl">Diskon %</span><select name="items[${i}][item_diskon_persen]" class="border rounded px-2 py-1 text-sm w-full">${optList(DISKON_OPTS, 0)}</select></td>
-            <td class="p-2"><span class="row-lbl">Pajak %</span><select name="items[${i}][item_pajak_persen]" class="border rounded px-2 py-1 text-sm w-full">${optList(PAJAK_OPTS, 0)}</select></td>
+            <td class="p-2"><span class="row-lbl">Diskon %</span><input name="items[${i}][item_diskon_persen]" type="number" step="0.01" min="0" max="100" value="0" list="dlDiskon" class="border rounded px-2 py-1 text-sm w-full text-right" /></td>
+            <td class="p-2"><span class="row-lbl">Pajak %</span><input name="items[${i}][item_pajak_persen]" type="number" step="0.01" min="0" max="100" value="0" list="dlPajak" class="border rounded px-2 py-1 text-sm w-full text-right" /></td>
             <td class="p-2 text-right row-subtotal row-subcell whitespace-nowrap"><span class="row-lbl">Subtotal</span><span class="row-val">0</span></td>
             <td class="p-1 text-center row-del"><button type="button" onclick="this.closest('tr').remove()" class="text-red-600 font-bold text-lg leading-none">×</button></td>`;
         tbody.appendChild(tr);
@@ -219,8 +214,8 @@
         document.querySelectorAll('#itemsTable tbody tr').forEach(tr => {
             const q = parseFloat(tr.querySelector('input[name$="[item_qty]"]')?.value) || 0;
             const h = parseFloat(tr.querySelector('input[name$="[item_harga_satuan]"]')?.value) || 0;
-            const d = parseFloat(tr.querySelector('select[name$="[item_diskon_persen]"]')?.value) || 0;
-            const p = parseFloat(tr.querySelector('select[name$="[item_pajak_persen]"]')?.value) || 0;
+            const d = parseFloat(tr.querySelector('input[name$="[item_diskon_persen]"]')?.value) || 0;
+            const p = parseFloat(tr.querySelector('input[name$="[item_pajak_persen]"]')?.value) || 0;
             const line = q * h, dd = line * d / 100, netto = line - dd;
             const rowTax = mode === 'PER_ITEM' ? netto * p / 100 : 0;
             bruto += line; dItem += dd; pItem += netto * p / 100;
@@ -243,7 +238,7 @@
     }
     document.addEventListener('input', calcLive);
     document.addEventListener('change', e => {
-        if (e.target.matches('select[name$="[item_pajak_persen]"]') && (parseFloat(e.target.value) || 0) > 0) {
+        if (e.target.matches('input[name$="[item_pajak_persen]"]') && (parseFloat(e.target.value) || 0) > 0) {
             const m = document.getElementById('select-penawaran_pajak_mode');
             if (m) m.value = 'PER_ITEM';
         }
@@ -273,8 +268,8 @@ initPenawaranTiny();
 </script>
 @endpush
     <style>
-        #custDialog { margin: auto auto 0 auto; border-radius: 1rem 1rem 0 0; width: min(28rem, calc(100vw - 2rem)); max-height: 90vh; }
-        #custDialog::backdrop { background: rgba(0,0,0,.45); }
+        #custDialog, #brgDialog { margin: auto auto 0 auto; border-radius: 1rem 1rem 0 0; width: min(28rem, calc(100vw - 2rem)); max-height: 90vh; }
+        #custDialog::backdrop, #brgDialog::backdrop { background: rgba(0,0,0,.45); }
     </style>
     <dialog id="custDialog" class="p-0 w-full max-w-md">
         <form method="dialog" class="p-5">
@@ -333,5 +328,63 @@ initPenawaranTiny();
             err.textContent = 'Koneksi gagal, coba lagi.';
         }
     }
+    async function simpanBarang() {
+        const err = document.getElementById('brgError');
+        err.textContent = '';
+        const nama = document.getElementById('brgNama').value.trim();
+        const harga = parseFloat(document.getElementById('brgHarga').value) || 0;
+        if (!nama) { err.textContent = 'Nama barang wajib diisi.'; return; }
+        try {
+            const res = await fetch("{{ route('produk.postCreate') }}", {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.getElementById('custCsrf').value,
+                },
+                body: JSON.stringify({ produk_nama: nama, produk_harga_jual: harga, produk_satuan: 'pcs' }),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.status) {
+                err.textContent = (json.data && typeof json.data === 'string') ? json.data : (json.message || 'Gagal menyimpan barang.');
+                return;
+            }
+            const nm = json.data.produk_nama, hj = parseFloat(json.data.produk_harga_jual) || 0;
+            PRODUK_HARGA[nm] = hj;
+            document.querySelectorAll('.prod-select').forEach(sel => {
+                if ([...sel.options].some(o => o.value === nm)) return;
+                const o = document.createElement('option');
+                o.value = nm; o.textContent = nm;
+                sel.insertBefore(o, sel.querySelector('option[value="__manual"]'));
+            });
+            let target = [...document.querySelectorAll('#itemsTable tbody tr')].find(tr => {
+                const s = tr.querySelector('.prod-select');
+                return s && (!s.value || s.value === '__manual' && !tr.querySelector('.prod-text').value);
+            });
+            if (!target) { tambahBaris(); target = document.querySelector('#itemsTable tbody tr:last-child'); }
+            const sel = target.querySelector('.prod-select');
+            sel.value = nm; pilihProduk(sel);
+            calcLive();
+            document.getElementById('brgDialog').close();
+            document.getElementById('brgNama').value = '';
+            document.getElementById('brgHarga').value = '';
+        } catch (e) {
+            err.textContent = 'Koneksi gagal, coba lagi.';
+        }
+    }
     </script>
+    <dialog id="brgDialog" class="p-0 w-full max-w-md">
+        <form method="dialog" class="p-5">
+            <h3 class="font-bold text-lg mb-3">Tambah Barang Baru</h3>
+            <label class="text-sm font-bold block mb-1">Nama barang *</label>
+            <input id="brgNama" class="w-full border rounded-lg px-3 py-2 text-sm mb-2" required />
+            <label class="text-sm font-bold block mb-1">Harga jual</label>
+            <input id="brgHarga" type="number" min="0" step="0.01" value="0" class="w-full border rounded-lg px-3 py-2 text-sm mb-2" />
+            <p id="brgError" class="text-sm text-red-600 mb-2"></p>
+            <div class="flex justify-end gap-2 mt-2">
+                <x-button variant="soft" type="button" onclick="document.getElementById('brgDialog').close()">Batal</x-button>
+                <x-button variant="primary" type="button" onclick="simpanBarang()">Simpan</x-button>
+            </div>
+        </form>
+    </dialog>
 </x-layouts::app>

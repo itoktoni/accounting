@@ -35,7 +35,19 @@
                 @foreach($data as $table)
                 <tr>
                     <x-table-row-checkbox :model="$model" :value="$table->field_primary" />
-                    <x-table-action :model="$model" :id="$table->field_primary" />
+                    <x-table-action :model="$model" :id="$table->field_primary">
+                        <a href="{{ moduleRoute('getRiwayat', ['id' => $table->field_primary]) }}" title="Riwayat Pembayaran" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors">
+                            <span class="material-symbols-outlined text-lg">history</span>
+                        </a>
+                        @if($table->hutang_status !== 'LUNAS')
+                        <form method="POST" action="{{ moduleRoute('postLunas', ['id' => $table->field_primary]) }}" class="inline">
+                            @csrf
+                            <button type="submit" title="Tandai Lunas" onclick="return confirm('Lunasi sisa dan catat jurnal kas?')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-600/10 text-green-700 hover:bg-green-600/20 transition-colors">
+                                <span class="material-symbols-outlined text-lg">task_alt</span>
+                            </button>
+                        </form>
+                        @endif
+                    </x-table-action>
                     <td class="whitespace-nowrap">{{ formatDate($table->hutang_tanggal) }}</td>
                     <td>{{ $table->hutang_pemasok }}</td>
                     <td class="text-right">{{ formatAngka((int) round($table->hutang_jumlah)) }}</td>
@@ -71,7 +83,19 @@
                         <div class="flex items-center justify-between pt-2 border-t border-outline-variant/50">
                             <span class="text-[9px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">{{ $table->field_primary }}</span>
                             <div class="flex gap-1" onclick="event.stopPropagation()">
-                                <x-table-action :model="$model" :id="$table->field_primary" />
+                                <x-table-action :model="$model" :id="$table->field_primary">
+                                    <a href="{{ moduleRoute('getRiwayat', ['id' => $table->field_primary]) }}" title="Riwayat Pembayaran" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors">
+                                        <span class="material-symbols-outlined text-lg">history</span>
+                                    </a>
+                                    @if($table->hutang_status !== 'LUNAS')
+                                    <form method="POST" action="{{ moduleRoute('postLunas', ['id' => $table->field_primary]) }}" class="inline" onclick="event.stopPropagation()">
+                                        @csrf
+                                        <button type="submit" title="Tandai Lunas" onclick="return confirm('Lunasi sisa dan catat jurnal kas?')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-600/10 text-green-700 hover:bg-green-600/20 transition-colors">
+                                            <span class="material-symbols-outlined text-lg">task_alt</span>
+                                        </button>
+                                    </form>
+                                    @endif
+                                </x-table-action>
                             </div>
                         </div>
                     </div>

@@ -27,7 +27,7 @@
                 <th>Nomor</th>
                 <th>Tanggal</th>
                 <th>Pelanggan</th>
-                <th>Total</th>
+                <th class="text-right">Total</th>
                 <th>Status</th>
             </x-slot:head>
 
@@ -39,6 +39,14 @@
                         <a href="{{ moduleRoute('getCetak', ['id' => $table->field_primary]) }}" target="_blank" title="Cetak PDF" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors">
                             <span class="material-symbols-outlined text-lg">print</span>
                         </a>
+                        @if(empty($table->penawaran_invoice_id) && $table->penawaran_status !== 'DITOLAK')
+                        <form method="POST" action="{{ moduleRoute('postConvert', ['id' => $table->field_primary]) }}" class="inline">
+                            @csrf
+                            <button type="submit" title="Setujui & Convert ke Invoice" onclick="return confirm('Setujui dan buatkan invoice dari penawaran ini?')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                <span class="material-symbols-outlined text-lg">receipt_long</span>
+                            </button>
+                        </form>
+                        @endif
                     </x-table-action>
                     <td>{{ $table->penawaran_nomor }}</td>
                     <td>{{ formatDate($table->penawaran_tanggal) }}</td>
@@ -80,6 +88,14 @@
                                     <a href="{{ moduleRoute('getCetak', ['id' => $table->field_primary]) }}" target="_blank" title="Cetak PDF" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors">
                                         <span class="material-symbols-outlined text-lg">print</span>
                                     </a>
+                                    @if(empty($table->penawaran_invoice_id) && $table->penawaran_status !== 'DITOLAK')
+                                    <form method="POST" action="{{ moduleRoute('postConvert', ['id' => $table->field_primary]) }}" class="inline" onclick="event.stopPropagation()">
+                                        @csrf
+                                        <button type="submit" title="Setujui & Convert ke Invoice" onclick="return confirm('Setujui dan buatkan invoice dari penawaran ini?')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                            <span class="material-symbols-outlined text-lg">receipt_long</span>
+                                        </button>
+                                    </form>
+                                    @endif
                                 </x-table-action>
                             </div>
                         </div>

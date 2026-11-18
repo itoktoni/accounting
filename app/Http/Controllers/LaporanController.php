@@ -28,7 +28,7 @@ class LaporanController extends Controller
         ];
     }
 
-    private function saldoAkun(int $tahun, ?int $bulan)
+    private function saldoAkun(int $tahun, ?int $bulan, ?int $akunId = null)
     {
         $q = DB::table('detail_jurnal as dj')
             ->join('jurnal as j', 'j.jurnal_id', '=', 'dj.detail_jurnal_id')
@@ -37,6 +37,10 @@ class LaporanController extends Controller
 
         if ($bulan) {
             $q->whereMonth('j.jurnal_tanggal', $bulan);
+        }
+
+        if ($akunId) {
+            $q->where('a.akun_id', $akunId);
         }
 
         return $q->select('a.akun_id', 'a.akun_kode', 'a.akun_nama', 'a.akun_tipe', 'a.akun_subtipe', 'a.akun_saldo_normal',
@@ -182,9 +186,9 @@ class LaporanController extends Controller
     }
 
     // ---- Data builders (dipakai Print + Excel) ----
-    private function neracaData(int $tahun, ?int $bulan): array
+    private function neracaData(int $tahun, ?int $bulan, ?int $akunId = null): array
     {
-        $rows = $this->saldoAkun($tahun, $bulan);
+        $rows = $this->saldoAkun($tahun, $bulan, $akunId);
         $grup = $rows->groupBy('akun_tipe');
         $total = fn ($tipe) => round((float) ($grup->get($tipe, collect())->sum('saldo')), 2);
         $totalAset = $total('ASET');
@@ -193,8 +197,11 @@ class LaporanController extends Controller
         $out = [];
         foreach (['ASET', 'LIABILITAS', 'EKUITAS'] as $tipe) {
             $out[] = [$tipe, ''];
-            foreach ($grup->get($tipe, collect()) as $r) {
-                $out[] = [$r->akun_kode.' - '.$r->akun_nama, $this->rp($r->saldo)];
+            foreach ($grup->get($tipe, collect())->groupBy('akun_subtipe') as $sub => $list) {
+                $out[] = ['-- '.($sub ?: 'Lainnya'), ''];
+                foreach ($list as $r) {
+                    $out[] = [$r->akun_kode.' - '.$r->akun_nama, $this->rp($r->saldo)];
+                }
             }
             $out[] = ['Subtotal '.$tipe, $this->rp($total($tipe))];
         }
@@ -205,9 +212,9 @@ class LaporanController extends Controller
         return [['Akun', 'Saldo'], $out, $foot];
     }
 
-    private function labaRugiData(int $tahun, ?int $bulan): array
+    private function labaRugiData(int $tahun, ?int $bulan, ?int $akunId = null): array
     {
-        $rows = $this->saldoAkun($tahun, $bulan);
+        $rows = $this->saldoAkun($tahun, $bulan, $akunId);
         $pendapatan = $rows->where('akun_tipe', 'PENDAPATAN')->groupBy('akun_subtipe');
         $beban = $rows->where('akun_tipe', 'BEBAN')->groupBy('akun_subtipe');
         $totalPendapatan = round((float) $rows->where('akun_tipe', 'PENDAPATAN')->sum('saldo'), 2);
@@ -286,11 +293,22 @@ class LaporanController extends Controller
         return Akun::orderBy('akun_kode')->get()->mapWithKeys(fn ($a) => [$a->akun_id => $a->akun_kode.' - '.$a->akun_nama])->toArray();
     }
 
+    private function akunDropdown(): array
+    {
+        return [['name' => 'akun_id', 'label' => 'Nomor Akun (opsional)', 'options' => $this->akunOptions(), 'search' => true]];
+    }
+
+    private function akunId(Request $request): ?int
+    {
+        return $request->input('akun_id') ? (int) $request->input('akun_id') : null;
+    }
+
     private function jurnalQuery(Request $request)
     {
         return $this->period(DB::table('detail_jurnal as dj')
             ->join('jurnal as j', 'j.jurnal_id', '=', 'dj.detail_jurnal_id')
             ->join('akun as a', 'a.akun_id', '=', 'dj.detail_akun_id'), $request, 'j.jurnal_tanggal')
+            ->when($request->input('akun_id'), fn ($q) => $q->where('a.akun_id', (int) $request->input('akun_id')))
             ->select('j.jurnal_tanggal', 'j.jurnal_nomor_tx', 'j.jurnal_keterangan', 'a.akun_kode', 'dj.detail_debit', 'dj.detail_kredit')
             ->orderBy('j.jurnal_tanggal')->orderBy('j.jurnal_id');
     }
@@ -318,11 +336,17 @@ class LaporanController extends Controller
         return [['Uraian', 'Nominal'], $rows, $foot];
     }
 
-    private function perubahanModalData(int $tahun, ?int $bulan): array
+    private function perubahanModalData(int $tahun, ?int $bulan, ?int $akunId = null): array
     {
-        $rows = $this->saldoAkun($tahun, $bulan)->where('akun_tipe', 'EKUITAS');
+        $rows = $this->saldoAkun($tahun, $bulan, $akunId)->where('akun_tipe', 'EKUITAS');
         $laba = $this->labaBerjalan($tahun, $bulan);
-        $out = $rows->map(fn ($r) => [$r->akun_kode.' - '.$r->akun_nama, $this->rp($r->saldo)])->values()->toArray();
+        $out = [];
+        foreach ($rows->groupBy('akun_subtipe') as $sub => $list) {
+            $out[] = ['-- '.($sub ?: 'Lainnya'), ''];
+            foreach ($list as $r) {
+                $out[] = [$r->akun_kode.' - '.$r->akun_nama, $this->rp($r->saldo)];
+            }
+        }
         $out[] = ['Laba berjalan', $this->rp($laba)];
         $foot = ['Total Ekuitas', $this->rp($rows->sum('saldo') + $laba)];
 
@@ -379,17 +403,23 @@ class LaporanController extends Controller
         return [['Kontak', 'Buku', 'Sisa'], $rows, []];
     }
 
-    private function trialBalanceData(int $tahun, ?int $bulan): array
+    private function trialBalanceData(int $tahun, ?int $bulan, ?int $akunId = null): array
     {
-        $rows = $this->saldoAkun($tahun, $bulan);
+        $rows = $this->saldoAkun($tahun, $bulan, $akunId);
         $out = [];
         $td = $tk = 0;
-        foreach ($rows as $r) {
-            $d = (float) $r->total_debit;
-            $k = (float) $r->total_kredit;
-            $td += $d;
-            $tk += $k;
-            $out[] = [$r->akun_kode.' - '.$r->akun_nama, $this->rp($d), $this->rp($k)];
+        foreach ($rows->groupBy('akun_tipe') as $tipe => $byTipe) {
+            $out[] = [$tipe, '', ''];
+            foreach ($byTipe->groupBy('akun_subtipe') as $sub => $list) {
+                $out[] = ['-- '.($sub ?: 'Lainnya'), '', ''];
+                foreach ($list as $r) {
+                    $d = (float) $r->total_debit;
+                    $k = (float) $r->total_kredit;
+                    $td += $d;
+                    $tk += $k;
+                    $out[] = [$r->akun_kode.' - '.$r->akun_nama, $this->rp($d), $this->rp($k)];
+                }
+            }
         }
         $foot = ['Total', $this->rp($td), $this->rp($tk)];
 
@@ -399,13 +429,13 @@ class LaporanController extends Controller
     // ---- Keuangan (BAC: filter → print viewer + excel) ----
     public function getNeraca(Request $request)
     {
-        return $this->filterView('Neraca', 'laporan.getNeracaPrint', 'laporan.getNeracaExcel');
+        return $this->filterView('Neraca', 'laporan.getNeracaPrint', 'laporan.getNeracaExcel', $this->akunDropdown());
     }
 
     public function getNeracaPrint(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->neracaData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->neracaData($tahun, $bulan, $this->akunId($request));
 
         return $this->printResponse('Neraca', $this->periodeLabel($request), $headers, $rows, $foot, route('laporan.getNeracaExcel', $request->query()));
     }
@@ -413,20 +443,20 @@ class LaporanController extends Controller
     public function getNeracaExcel(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->neracaData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->neracaData($tahun, $bulan, $this->akunId($request));
 
         return $this->excelResponse('neraca-'.now()->format('Ymd-His').'.xls', 'Neraca', $this->periodeLabel($request), $headers, $rows, $foot);
     }
 
     public function getLabaRugi(Request $request)
     {
-        return $this->filterView('Laba Rugi', 'laporan.getLabaRugiPrint', 'laporan.getLabaRugiExcel');
+        return $this->filterView('Laba Rugi', 'laporan.getLabaRugiPrint', 'laporan.getLabaRugiExcel', $this->akunDropdown());
     }
 
     public function getLabaRugiPrint(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->labaRugiData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->labaRugiData($tahun, $bulan, $this->akunId($request));
 
         return $this->printResponse('Laba Rugi', $this->periodeLabel($request), $headers, $rows, $foot, route('laporan.getLabaRugiExcel', $request->query()));
     }
@@ -434,7 +464,7 @@ class LaporanController extends Controller
     public function getLabaRugiExcel(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->labaRugiData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->labaRugiData($tahun, $bulan, $this->akunId($request));
 
         return $this->excelResponse('laba-rugi-'.now()->format('Ymd-His').'.xls', 'Laba Rugi', $this->periodeLabel($request), $headers, $rows, $foot);
     }
@@ -442,7 +472,7 @@ class LaporanController extends Controller
     public function getBukuBesar(Request $request)
     {
         return $this->filterView('Buku Besar', 'laporan.getBukuBesarPrint', 'laporan.getBukuBesarExcel', [
-            ['name' => 'akun_id', 'label' => 'Akun (opsional)', 'options' => $this->akunOptions()],
+            ['name' => 'akun_id', 'label' => 'Nomor Akun (opsional)', 'options' => $this->akunOptions(), 'search' => true],
         ]);
     }
 
@@ -506,13 +536,13 @@ class LaporanController extends Controller
 
     public function getPerubahanModal(Request $request)
     {
-        return $this->filterView('Perubahan Modal', 'laporan.getPerubahanModalPrint', 'laporan.getPerubahanModalExcel');
+        return $this->filterView('Perubahan Modal', 'laporan.getPerubahanModalPrint', 'laporan.getPerubahanModalExcel', $this->akunDropdown());
     }
 
     public function getPerubahanModalPrint(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->perubahanModalData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->perubahanModalData($tahun, $bulan, $this->akunId($request));
 
         return $this->printResponse('Perubahan Modal', $this->periodeLabel($request), $headers, $rows, $foot, route('laporan.getPerubahanModalExcel', $request->query()));
     }
@@ -520,7 +550,7 @@ class LaporanController extends Controller
     public function getPerubahanModalExcel(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->perubahanModalData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->perubahanModalData($tahun, $bulan, $this->akunId($request));
 
         return $this->excelResponse('perubahan-modal-'.now()->format('Ymd-His').'.xls', 'Perubahan Modal', $this->periodeLabel($request), $headers, $rows, $foot);
     }
@@ -605,7 +635,7 @@ class LaporanController extends Controller
 
     public function getJurnal(Request $request)
     {
-        return $this->filterView('Jurnal', 'laporan.getJurnalPrint', 'laporan.getJurnalExcel');
+        return $this->filterView('Jurnal', 'laporan.getJurnalPrint', 'laporan.getJurnalExcel', $this->akunDropdown());
     }
 
     public function getJurnalPrint(Request $request)
@@ -625,13 +655,13 @@ class LaporanController extends Controller
 
     public function getTrialBalance(Request $request)
     {
-        return $this->filterView('Trial Balance', 'laporan.getTrialBalancePrint', 'laporan.getTrialBalanceExcel');
+        return $this->filterView('Trial Balance', 'laporan.getTrialBalancePrint', 'laporan.getTrialBalanceExcel', $this->akunDropdown());
     }
 
     public function getTrialBalancePrint(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->trialBalanceData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->trialBalanceData($tahun, $bulan, $this->akunId($request));
 
         return $this->printResponse('Trial Balance', $this->periodeLabel($request), $headers, $rows, $foot, route('laporan.getTrialBalanceExcel', $request->query()));
     }
@@ -639,7 +669,7 @@ class LaporanController extends Controller
     public function getTrialBalanceExcel(Request $request)
     {
         ['tahun' => $tahun, 'bulan' => $bulan] = $this->periode($request);
-        [$headers, $rows, $foot] = $this->trialBalanceData($tahun, $bulan);
+        [$headers, $rows, $foot] = $this->trialBalanceData($tahun, $bulan, $this->akunId($request));
 
         return $this->excelResponse('trial-balance-'.now()->format('Ymd-His').'.xls', 'Trial Balance', $this->periodeLabel($request), $headers, $rows, $foot);
     }

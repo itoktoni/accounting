@@ -61,6 +61,32 @@ class PiutangController extends Controller
         return $this->response($this->payload(TOAST_SUCCESS, $piutang->fresh()));
     }
 
+    // Tandai Lunas 1 klik: lunasi sisa + jurnal kas otomatis.
+    public function postLunas(GeneralRequest $request, $id)
+    {
+        $piutang = $this->model->findOrFail($id);
+        $sisa = (float) $piutang->piutang_jumlah - (float) $piutang->piutang_terbayar;
+        if ($sisa <= 0) {
+            return $this->response($this->payload(TOAST_FAILED, 'Sudah lunas.'));
+        }
+
+        DB::transaction(function () use ($piutang, $sisa) {
+            BayarPiutang::create([
+                "bayar_piutang_id" => $piutang->piutang_id,
+                "bayar_tanggal" => now()->toDateString(),
+                "bayar_jumlah" => $sisa,
+                "bayar_catatan" => "Pelunasan (tandai lunas)",
+                "bayar_jurnal_id" => $this->buatJurnalPelunasan($piutang, $sisa),
+            ]);
+            $piutang->update([
+                "piutang_terbayar" => (float) $piutang->piutang_jumlah,
+                "piutang_status" => "LUNAS",
+            ]);
+        });
+
+        return $this->response($this->payload(TOAST_SUCCESS, $piutang->fresh()));
+    }
+
     // Jurnal D Kas K Piutang 1120 — hanya bila tabel jurnal tersedia.
     protected function buatJurnalPelunasan(Piutang $piutang, float $jumlah): ?int
     {

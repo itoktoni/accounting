@@ -30,6 +30,7 @@
                 <th>Tanggal</th>
                 <th>Jumlah</th>
                 <th>Catatan</th>
+                <th>Jurnal</th>
             </x-slot:head>
             <x-slot:body>
                 @forelse($riwayat as $bayar)
@@ -37,9 +38,10 @@
                     <td>{{ formatDate($bayar->bayar_tanggal) }}</td>
                     <td>{{ formatQty($bayar->bayar_jumlah) }}</td>
                     <td>{{ $bayar->bayar_catatan ?? '-' }}</td>
+                    <td><x-jurnal-lihat :jurnal-id="$bayar->bayar_jurnal_id ?? null" dialog="jurnalDialog{{ $bayar->getKey() }}" /></td>
                 </tr>
                 @empty
-                <tr><td colspan="3" class="text-center">Belum ada pembayaran</td></tr>
+                <tr><td colspan="4" class="text-center">Belum ada pembayaran</td></tr>
                 @endforelse
             </x-slot:body>
         </x-table>
